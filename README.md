@@ -15,9 +15,9 @@ While these tools are built to be cross-domain, the primary focus areas are thos
 
 ## Projects
 
-| Project | Description | Status |
-|---------|-------------|--------|
-| ... | ... | ... |
+| # | Project | Description | Status |
+|---|---------|-------------|--------|
+| 01 | [Spreadsheet Diff](./projects/01-spreadsheet-diff) | Compare two CSV/XLSX files and produce a structured diff report (shape, headers, rows, cell values, type mismatches). Turns manual cell-by-cell QA checks into a repeatable pipeline. | In progress |
 
 ## Structure
 
