@@ -4,9 +4,11 @@ A small, modular Python tool for comparing two spreadsheets (CSV or XLSX) and pr
 
 ## The Problem
 
-A common QA workflow in data teams: two people independently transform a raw data extract into a required format, then manually check each other's work cell-by-cell before the data is released. This is slow, error-prone, and hard to audit.
+A common QA workflow in data teams: two people independently transform a raw data extract into a required format, then check each other's work before the data is released.
 
-This tool turns that ad-hoc manual check into a repeatable, auditable process.
+In practice, that "check" usually ends up as a manually-built Excel template with hand-written `IF(A1=B1, TRUE, FALSE)` formulas and conditional formatting to highlight mismatches in red — recreated from scratch every time, for every new report. It's slow, easy to get wrong, hard to audit, and nobody wants to maintain it.
+
+This tool replaces that ad-hoc template with a single repeatable command that produces a consistent, readable diff report — so the QA check itself stops being a source of error.
 
 ## What It Does
 
@@ -87,12 +89,23 @@ python -m src.cli path/to/file.xlsx path/to/file.xlsx --list-sheets
 
 The CLI exits with status `0` if the files match and `1` if any differences are found — so it can be dropped into a QA pipeline or CI job.
 
-## Running the Tests
+## Testing
+
+The tool ships with a small but meaningful test suite in `tests/`:
+
+- `test_loader.py` — covers CSV loading, missing files, and unsupported file types
+- `test_comparator.py` — covers identical files, positional comparison, and key-based order-independent comparison
+
+Sample fixtures in `tests/fixtures/` include both a matching pair and a deliberately mismatching pair, so the comparator is exercised against real differences (a changed value, a changed currency, rows only in one file).
+
+Run the suite with:
 
 ```bash
 pip install pytest
 pytest
 ```
+
+Every change to the loader or comparator should keep these tests green.
 
 ## Why This Design
 
