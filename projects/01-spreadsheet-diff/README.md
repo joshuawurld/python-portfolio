@@ -42,19 +42,20 @@ Given two spreadsheets, it reports on:
 projects/01-spreadsheet-diff/
 ├── src/
 │   ├── loader.py       # Reads CSV/XLSX into a normalized DataFrame
-│   ├── comparator.py   # Runs shape/header/row/cell checks
-│   ├── reporter.py     # Renders results as markdown or console output
+│   ├── comparator.py   # Runs shape/header/row/cell checks + type normalisation
+│   ├── reporter.py     # Renders results as markdown, HTML, or console output
 │   └── cli.py          # Command-line entry point
 ├── tests/
-│   ├── fixtures/       # Sample CSVs for matching / mismatching cases
+│   ├── fixtures/       # Sample CSVs and XLSX files
 │   ├── test_loader.py
+│   ├── test_loader_xlsx.py
 │   └── test_comparator.py
 ├── examples/
 │   └── run_example.sh  # End-to-end demo on the sample fixtures
 └── requirements.txt
 ```
 
-Each module does one thing; any one of them can be swapped out (e.g. a new HTML reporter, or a new loader for another format) without touching the others.
+Each module does one thing; any one of them can be swapped out without touching the others.
 
 ## Install
 
@@ -85,7 +86,9 @@ python -m src.cli path/to/file.xlsx path/to/file.xlsx --list-sheets
 | `--key` | Column name used for order-independent row matching |
 | `--header-row` | 0-based index of the header row |
 | `--out` | Path to write a markdown report |
+| `--out-html` | Path to write a self-contained HTML report |
 | `--list-sheets` | List sheet names in `file_a` and exit |
+| `--normalize-types` | Coerce string numbers to numeric before comparing (`"100"` == `100`) |
 
 The CLI exits with status `0` if the files match and `1` if any differences are found — so it can be dropped into a QA pipeline or CI job.
 
@@ -93,10 +96,11 @@ The CLI exits with status `0` if the files match and `1` if any differences are 
 
 The tool ships with a small but meaningful test suite in `tests/`:
 
-- `test_loader.py` — covers CSV loading, missing files, and unsupported file types
-- `test_comparator.py` — covers identical files, positional comparison, and key-based order-independent comparison
+- `test_loader.py` — CSV loading, missing files, unsupported file types
+- `test_loader_xlsx.py` — merged cell warnings, multi-sheet selection, `--list-sheets`, bad sheet name
+- `test_comparator.py` — identical files, positional comparison, key-based order-independent comparison, NaN equality regression, missing key column error, type normalisation
 
-Sample fixtures in `tests/fixtures/` include both a matching pair and a deliberately mismatching pair, so the comparator is exercised against real differences (a changed value, a changed currency, rows only in one file).
+Sample fixtures in `tests/fixtures/` include a matching pair, a deliberately mismatching pair, NaN-containing CSVs, and XLSX files with merged cells and multiple sheets.
 
 Run the suite with:
 
@@ -112,4 +116,6 @@ Every change to the loader or comparator should keep these tests green.
 - **Modular** — `loader → comparator → reporter → cli` is a pipeline; each stage has a single responsibility.
 - **Typed dataclasses** (`LoadResult`, `DiffResult`, `CellDiff`) make the interfaces between stages explicit and easy to test.
 - **Pure-function comparator** — no I/O, so it's trivial to unit test.
-- **Exit codes for automation** — the tool is useful both for a human reading the markdown and for a script in CI.
+- **Multiple output formats** — markdown, HTML, and console from the same `DiffResult`; add a new format without touching the comparator.
+- **Type normalisation** — `--normalize-types` coerces string numbers to numeric before comparison, solving the common "same value, different export format" false positive.
+- **Exit codes for automation** — the tool is useful both for a human reading the report and for a script in CI.

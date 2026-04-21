@@ -8,5 +8,6 @@ env/
 .venv/
 .pytest_cache/
 
-# Personal workflow notes
+# Personal workflow and interview notes (never pushed)
 personal_workflow.md
+docs/interview-notes.md

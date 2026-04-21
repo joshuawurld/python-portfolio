@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .comparator import compare
 from .loader import list_sheets, load_spreadsheet
-from .reporter import render_console, render_markdown
+from .reporter import render_console, render_html, render_markdown
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -48,6 +48,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="List sheet names in file_a and exit.",
     )
+    p.add_argument(
+        "--normalize-types",
+        action="store_true",
+        help="Coerce string numbers to numeric before comparing (e.g. '100' == 100).",
+    )
+    p.add_argument(
+        "--out-html",
+        default=None,
+        help="Write an HTML diff report to this path.",
+    )
     return p
 
 
@@ -65,7 +75,11 @@ def main(argv: list[str] | None = None) -> int:
     a = load_spreadsheet(args.file_a, sheet=args.sheet, header_row=args.header_row)
     b = load_spreadsheet(args.file_b, sheet=args.sheet, header_row=args.header_row)
 
-    result = compare(a.df, b.df, key_column=args.key)
+    result = compare(
+        a.df, b.df,
+        key_column=args.key,
+        normalize_types=args.normalize_types,
+    )
 
     loader_warnings = a.warnings + b.warnings
     print(render_console(result, a.source, b.source, loader_warnings))
@@ -74,6 +88,11 @@ def main(argv: list[str] | None = None) -> int:
         md = render_markdown(result, a.source, b.source, loader_warnings)
         Path(args.out).write_text(md, encoding="utf-8")
         print(f"\nMarkdown report written to {args.out}")
+
+    if args.out_html:
+        html = render_html(result, a.source, b.source, loader_warnings)
+        Path(args.out_html).write_text(html, encoding="utf-8")
+        print(f"\nHTML report written to {args.out_html}")
 
     return 0 if result.is_match else 1
 

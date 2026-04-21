@@ -6,6 +6,7 @@ Checks performed:
 - Row membership (when a key column is provided)
 - Cell-by-cell value differences
 - Type mismatches (flagged separately from value differences)
+- Optional type normalisation (coerce string numbers to numeric before comparing)
 """
 
 from __future__ import annotations
@@ -72,6 +73,16 @@ def _types_equal(v_a, v_b) -> bool:
     return type(v_a) is type(v_b)
 
 
+def _normalize(df: pd.DataFrame) -> pd.DataFrame:
+    """Coerce columns to numeric where all non-null values look like numbers."""
+    df = df.copy()
+    for col in df.columns:
+        converted = pd.to_numeric(df[col], errors="coerce")
+        if converted.notna().sum() == df[col].notna().sum():
+            df[col] = converted
+    return df
+
+
 def _compare_aligned(
     a: pd.DataFrame, b: pd.DataFrame, shared_cols: list[str]
 ) -> list[CellDiff]:
@@ -115,6 +126,7 @@ def compare(
     a: pd.DataFrame,
     b: pd.DataFrame,
     key_column: str | None = None,
+    normalize_types: bool = False,
 ) -> DiffResult:
     """Compare two DataFrames and return a structured DiffResult.
 
@@ -124,8 +136,13 @@ def compare(
         key_column: If provided, rows are matched by this column so that
             order-independent comparison is possible. If None, rows are
             compared positionally.
+        normalize_types: If True, columns that look like numbers are coerced
+            to numeric before comparison, so '100' and 100 are treated equal.
     """
     warnings: list[str] = []
+    if normalize_types:
+        a = _normalize(a)
+        b = _normalize(b)
     headers_match, only_in_a, only_in_b = _compare_headers(a, b)
     shared_cols = [c for c in a.columns if c in b.columns]
 
